@@ -1,0 +1,4927 @@
+{
+  "note": "Expectations are derived independently; observations come from probe.run_case against pinned pandas 2.2.2 / SQLAlchemy 2.0.35. Defect cases are expected to mismatch the atomic-write promise, not to pass.",
+  "records": [
+    {
+      "id": "E01-normal-append-engine-legacy",
+      "spec": {
+        "if_exists": "append",
+        "owner": "engine",
+        "catch": false,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "success_control",
+        "errors": [],
+        "returned": 4,
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1,
+            "old"
+          ],
+          [
+            2,
+            "old"
+          ],
+          [
+            3,
+            "old"
+          ],
+          [
+            4,
+            "old"
+          ],
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "why": "Engine owner: pandas opens and closes the only transaction; all four inserts commit once on success."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E01",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [],
+          "returned": 4,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1,
+              "old"
+            ],
+            [
+              2,
+              "old"
+            ],
+            [
+              3,
+              "old"
+            ],
+            [
+              4,
+              "old"
+            ],
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (3)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (4)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_return",
+            "value": 4
+          }
+        ],
+        "raw_errors": []
+      }
+    },
+    {
+      "id": "E02-incident-append-engine-legacy-check",
+      "spec": {
+        "if_exists": "append",
+        "owner": "engine",
+        "catch": false,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          -3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "defect",
+        "defect": "D1",
+        "errors": [
+          [
+            "outside_transaction_scope",
+            "IntegrityError"
+          ]
+        ],
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1,
+            "old"
+          ],
+          [
+            2,
+            "old"
+          ],
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "why": "Engine owner + legacy driver: first chunk is inside the sqlite3 implicit transaction. On the CHECK failure pandasSQL_builder's ExitStack still closes con.begin() with no exception info and COMMITs; chunk 1 survives. Structure is append-only so the table definition is untouched."
+      },
+      "atomic_promise": {
+        "rows": [
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 0,
+          "ROLLBACK": 1
+        }
+      },
+      "review_reference": "REVIEW.md#E02",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "outside_transaction_scope",
+              "IntegrityError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1,
+              "old"
+            ],
+            [
+              2,
+              "old"
+            ],
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (-3)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "outside_transaction_scope",
+            "type": "IntegrityError",
+            "message": "(sqlite3.IntegrityError) CHECK constraint failed: value>=0\n[SQL: INSERT INTO readings (value) VALUES (?)]\n[parameters: [(-3,), (4,)]]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+            "cause_type": "IntegrityError"
+          }
+        ]
+      }
+    },
+    {
+      "id": "E03-append-engine-legacy-overflow",
+      "spec": {
+        "if_exists": "append",
+        "owner": "engine",
+        "catch": false,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          9223372036854775808,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "defect",
+        "defect": "D1",
+        "errors": [
+          [
+            "outside_transaction_scope",
+            "OverflowError"
+          ]
+        ],
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1,
+            "old"
+          ],
+          [
+            2,
+            "old"
+          ],
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "why": "Same owner/begin mode as E02; OverflowError is raised while binding chunk 2 before any of its SQL is sent, but the already-open transaction is still committed on cleanup."
+      },
+      "atomic_promise": {
+        "rows": [
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 0,
+          "ROLLBACK": 1
+        }
+      },
+      "review_reference": "REVIEW.md#E03",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "outside_transaction_scope",
+              "OverflowError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1,
+              "old"
+            ],
+            [
+              2,
+              "old"
+            ],
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "outside_transaction_scope",
+            "type": "OverflowError",
+            "message": "Python int too large to convert to SQLite INTEGER",
+            "cause_type": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "E04-append-engine-explicit-check",
+      "spec": {
+        "if_exists": "append",
+        "owner": "engine",
+        "catch": false,
+        "begin": "explicit",
+        "values": [
+          1,
+          2,
+          -3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "defect",
+        "defect": "D1",
+        "errors": [
+          [
+            "outside_transaction_scope",
+            "IntegrityError"
+          ]
+        ],
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1,
+            "old"
+          ],
+          [
+            2,
+            "old"
+          ],
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "why": "Single-factor change vs E02 (legacy->explicit BEGIN). Physical BEGIN now exists from the start, which makes rollback possible, but pandas still exits its own context without the exception and commits; the driver recipe cannot fix D1."
+      },
+      "atomic_promise": {
+        "rows": [
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 0,
+          "ROLLBACK": 1
+        }
+      },
+      "review_reference": "REVIEW.md#E04",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "outside_transaction_scope",
+              "IntegrityError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1,
+              "old"
+            ],
+            [
+              2,
+              "old"
+            ],
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (-3)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "outside_transaction_scope",
+            "type": "IntegrityError",
+            "message": "(sqlite3.IntegrityError) CHECK constraint failed: value>=0\n[SQL: INSERT INTO readings (value) VALUES (?)]\n[parameters: [(-3,), (4,)]]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+            "cause_type": "IntegrityError"
+          }
+        ]
+      }
+    },
+    {
+      "id": "E05-append-conn-legacy-check-escape",
+      "spec": {
+        "if_exists": "append",
+        "owner": "connection",
+        "catch": false,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          -3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "correct_rollback_control",
+        "errors": [
+          [
+            "outside_transaction_scope",
+            "IntegrityError"
+          ]
+        ],
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 0,
+          "ROLLBACK": 1
+        },
+        "why": "Caller owns engine.begin(); pandas run_transaction() joins the existing transaction instead of creating one. The exception escapes, so the outer RootTransaction __exit__ rolls back."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E05",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "outside_transaction_scope",
+              "IntegrityError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 0,
+            "ROLLBACK": 1
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (-3)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "rollback",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "ROLLBACK",
+            "active_before": true
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "outside_transaction_scope",
+            "type": "IntegrityError",
+            "message": "(sqlite3.IntegrityError) CHECK constraint failed: value>=0\n[SQL: INSERT INTO readings (value) VALUES (?)]\n[parameters: [(-3,), (4,)]]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+            "cause_type": "IntegrityError"
+          }
+        ]
+      }
+    },
+    {
+      "id": "E06-append-conn-legacy-check-caught",
+      "spec": {
+        "if_exists": "append",
+        "owner": "connection",
+        "catch": true,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          -3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "caller_responsibility",
+        "errors": [
+          [
+            "inside_outer_transaction",
+            "IntegrityError"
+          ]
+        ],
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1,
+            "old"
+          ],
+          [
+            2,
+            "old"
+          ],
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "why": "The exception is caught inside the outer scope, which then exits normally. engine.begin() therefore commits everything in its transaction, including chunk 1. Pandas neither committed nor rolled back here; the caller's scope owns it."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E06",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "inside_outer_transaction",
+              "IntegrityError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1,
+              "old"
+            ],
+            [
+              2,
+              "old"
+            ],
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (-3)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          },
+          {
+            "layer": "caller",
+            "event": "outer_scope_continues"
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "inside_outer_transaction",
+            "type": "IntegrityError",
+            "message": "(sqlite3.IntegrityError) CHECK constraint failed: value>=0\n[SQL: INSERT INTO readings (value) VALUES (?)]\n[parameters: [(-3,), (4,)]]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+            "cause_type": "IntegrityError"
+          }
+        ]
+      }
+    },
+    {
+      "id": "E07-append-conn-explicit-check-escape",
+      "spec": {
+        "if_exists": "append",
+        "owner": "connection",
+        "catch": false,
+        "begin": "explicit",
+        "values": [
+          1,
+          2,
+          -3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "correct_rollback_control",
+        "errors": [
+          [
+            "outside_transaction_scope",
+            "IntegrityError"
+          ]
+        ],
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 0,
+          "ROLLBACK": 1
+        },
+        "why": "Explicit-BEGIN twin of E05; physical transaction was opened by the begin event and the outer ROLLBACK removes chunk 1."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E07",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "outside_transaction_scope",
+              "IntegrityError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 0,
+            "ROLLBACK": 1
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (-3)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "rollback",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "ROLLBACK",
+            "active_before": true
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "outside_transaction_scope",
+            "type": "IntegrityError",
+            "message": "(sqlite3.IntegrityError) CHECK constraint failed: value>=0\n[SQL: INSERT INTO readings (value) VALUES (?)]\n[parameters: [(-3,), (4,)]]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+            "cause_type": "IntegrityError"
+          }
+        ]
+      }
+    },
+    {
+      "id": "E08-append-conn-explicit-check-caught",
+      "spec": {
+        "if_exists": "append",
+        "owner": "connection",
+        "catch": true,
+        "begin": "explicit",
+        "values": [
+          1,
+          2,
+          -3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "caller_responsibility",
+        "errors": [
+          [
+            "inside_outer_transaction",
+            "IntegrityError"
+          ]
+        ],
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1,
+            "old"
+          ],
+          [
+            2,
+            "old"
+          ],
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "why": "Explicit-BEGIN twin of E06; catching and completing the outer scope commits chunk 1 through the caller's transaction."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E08",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "inside_outer_transaction",
+              "IntegrityError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1,
+              "old"
+            ],
+            [
+              2,
+              "old"
+            ],
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (-3)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          },
+          {
+            "layer": "caller",
+            "event": "outer_scope_continues"
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "inside_outer_transaction",
+            "type": "IntegrityError",
+            "message": "(sqlite3.IntegrityError) CHECK constraint failed: value>=0\n[SQL: INSERT INTO readings (value) VALUES (?)]\n[parameters: [(-3,), (4,)]]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+            "cause_type": "IntegrityError"
+          }
+        ]
+      }
+    },
+    {
+      "id": "E09-append-conn-legacy-success",
+      "spec": {
+        "if_exists": "append",
+        "owner": "connection",
+        "catch": false,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "success_control",
+        "errors": [],
+        "returned": 4,
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1,
+            "old"
+          ],
+          [
+            2,
+            "old"
+          ],
+          [
+            3,
+            "old"
+          ],
+          [
+            4,
+            "old"
+          ],
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "why": "Connection-owner success under legacy control; one outer commit."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E09",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [],
+          "returned": 4,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1,
+              "old"
+            ],
+            [
+              2,
+              "old"
+            ],
+            [
+              3,
+              "old"
+            ],
+            [
+              4,
+              "old"
+            ],
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (3)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (4)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_return",
+            "value": 4
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          }
+        ],
+        "raw_errors": []
+      }
+    },
+    {
+      "id": "E10-append-conn-explicit-success",
+      "spec": {
+        "if_exists": "append",
+        "owner": "connection",
+        "catch": false,
+        "begin": "explicit",
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "success_control",
+        "errors": [],
+        "returned": 4,
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1,
+            "old"
+          ],
+          [
+            2,
+            "old"
+          ],
+          [
+            3,
+            "old"
+          ],
+          [
+            4,
+            "old"
+          ],
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "why": "Connection-owner success under explicit BEGIN; same outcome."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E10",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [],
+          "returned": 4,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1,
+              "old"
+            ],
+            [
+              2,
+              "old"
+            ],
+            [
+              3,
+              "old"
+            ],
+            [
+              4,
+              "old"
+            ],
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": null
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (3)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (4)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_return",
+            "value": 4
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          }
+        ],
+        "raw_errors": []
+      }
+    },
+    {
+      "id": "E11-replace-engine-legacy-overflow",
+      "spec": {
+        "if_exists": "replace",
+        "owner": "engine",
+        "catch": false,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          9223372036854775808,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "defect",
+        "defect": "D2",
+        "mode": "replace",
+        "errors": [
+          [
+            "outside_transaction_scope",
+            "OverflowError"
+          ]
+        ],
+        "objects": [
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "BIGINT",
+            0,
+            null,
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1
+          ],
+          [
+            2
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "physical_ddl_protected": false,
+        "why": "Legacy driver auto-commits DDL outside any physical transaction: DROP TABLE and CREATE TABLE are permanent before the insert transaction opens. Old columns, the CHECK constraint, the default, the index and row 90 cannot return. D1 then commits chunk 1 of the new table."
+      },
+      "atomic_promise": {
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 0,
+          "ROLLBACK": 1
+        }
+      },
+      "review_reference": "REVIEW.md#E11",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "outside_transaction_scope",
+              "OverflowError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "BIGINT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": false
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_xinfo(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA temp.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nDROP TABLE readings",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nCREATE TABLE readings (\n\tvalue BIGINT\n)\n\n",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "outside_transaction_scope",
+            "type": "OverflowError",
+            "message": "Python int too large to convert to SQLite INTEGER",
+            "cause_type": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "E12-replace-engine-explicit-overflow",
+      "spec": {
+        "if_exists": "replace",
+        "owner": "engine",
+        "catch": false,
+        "begin": "explicit",
+        "values": [
+          1,
+          2,
+          9223372036854775808,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "defect",
+        "defect": "D1",
+        "mode": "replace",
+        "errors": [
+          [
+            "outside_transaction_scope",
+            "OverflowError"
+          ]
+        ],
+        "objects": [
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "BIGINT",
+            0,
+            null,
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1
+          ],
+          [
+            2
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "physical_ddl_protected": true,
+        "why": "Explicit BEGIN puts DROP/CREATE inside the physical transaction, so a true rollback could restore the old table. D1 defeats it: cleanup commits the whole unit, leaving the replaced table plus chunk 1."
+      },
+      "atomic_promise": {
+        "rows": [
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 0,
+          "ROLLBACK": 1
+        }
+      },
+      "review_reference": "REVIEW.md#E12",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "outside_transaction_scope",
+              "OverflowError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "BIGINT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": true
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_xinfo(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.foreign_key_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA temp.foreign_key_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nDROP TABLE readings",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nCREATE TABLE readings (\n\tvalue BIGINT\n)\n\n",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "outside_transaction_scope",
+            "type": "OverflowError",
+            "message": "Python int too large to convert to SQLite INTEGER",
+            "cause_type": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "E13-replace-conn-legacy-overflow-escape",
+      "spec": {
+        "if_exists": "replace",
+        "owner": "connection",
+        "catch": false,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          9223372036854775808,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "ddl_boundary",
+        "errors": [
+          [
+            "outside_transaction_scope",
+            "OverflowError"
+          ]
+        ],
+        "objects": [
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "BIGINT",
+            0,
+            null,
+            0
+          ]
+        ],
+        "rows": [],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 0,
+          "ROLLBACK": 1
+        },
+        "physical_ddl_protected": false,
+        "why": "Outer transaction rolls back the DML, but legacy DDL was auto-committed: the new empty table survives; old structure, index and row 90 do not."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E13",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "outside_transaction_scope",
+              "OverflowError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "BIGINT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "rows": [],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 0,
+            "ROLLBACK": 1
+          },
+          "physical_ddl_protected": false
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_xinfo(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA temp.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nDROP TABLE readings",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nCREATE TABLE readings (\n\tvalue BIGINT\n)\n\n",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "rollback",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "ROLLBACK",
+            "active_before": true
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "outside_transaction_scope",
+            "type": "OverflowError",
+            "message": "Python int too large to convert to SQLite INTEGER",
+            "cause_type": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "E14-replace-conn-legacy-overflow-caught",
+      "spec": {
+        "if_exists": "replace",
+        "owner": "connection",
+        "catch": true,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          9223372036854775808,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "caller_responsibility",
+        "errors": [
+          [
+            "inside_outer_transaction",
+            "OverflowError"
+          ]
+        ],
+        "objects": [
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "BIGINT",
+            0,
+            null,
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1
+          ],
+          [
+            2
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "physical_ddl_protected": false,
+        "why": "Catching the error lets the outer scope commit; even without D1 the legacy driver had already made the DDL permanent, and the commit additionally persists chunk 1."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E14",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "inside_outer_transaction",
+              "OverflowError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "BIGINT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": false
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_xinfo(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA temp.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nDROP TABLE readings",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nCREATE TABLE readings (\n\tvalue BIGINT\n)\n\n",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          },
+          {
+            "layer": "caller",
+            "event": "outer_scope_continues"
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "inside_outer_transaction",
+            "type": "OverflowError",
+            "message": "Python int too large to convert to SQLite INTEGER",
+            "cause_type": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "E15-replace-conn-explicit-overflow-escape",
+      "spec": {
+        "if_exists": "replace",
+        "owner": "connection",
+        "catch": false,
+        "begin": "explicit",
+        "values": [
+          1,
+          2,
+          9223372036854775808,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "correct_rollback_control",
+        "errors": [
+          [
+            "outside_transaction_scope",
+            "OverflowError"
+          ]
+        ],
+        "objects": [
+          [
+            "index",
+            "readings_value",
+            "readings",
+            "CREATE INDEX readings_value ON readings(value)"
+          ],
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "INTEGER",
+            1,
+            null,
+            0
+          ],
+          [
+            1,
+            "legacy",
+            "TEXT",
+            1,
+            "'old'",
+            0
+          ]
+        ],
+        "rows": [
+          [
+            90,
+            "old"
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 0,
+          "ROLLBACK": 1
+        },
+        "physical_ddl_protected": true,
+        "why": "With explicit BEGIN the DDL is transactional and the escaped exception drives an outer ROLLBACK: old columns, index, row 90 and the CHECK constraint all come back. This is the one fully-atomic replace configuration in the matrix."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E15",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "outside_transaction_scope",
+              "OverflowError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 0,
+            "ROLLBACK": 1
+          },
+          "physical_ddl_protected": true
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_xinfo(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.foreign_key_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA temp.foreign_key_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nDROP TABLE readings",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nCREATE TABLE readings (\n\tvalue BIGINT\n)\n\n",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "rollback",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "ROLLBACK",
+            "active_before": true
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "outside_transaction_scope",
+            "type": "OverflowError",
+            "message": "Python int too large to convert to SQLite INTEGER",
+            "cause_type": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "E16-replace-conn-explicit-overflow-caught",
+      "spec": {
+        "if_exists": "replace",
+        "owner": "connection",
+        "catch": true,
+        "begin": "explicit",
+        "values": [
+          1,
+          2,
+          9223372036854775808,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "caller_responsibility",
+        "errors": [
+          [
+            "inside_outer_transaction",
+            "OverflowError"
+          ]
+        ],
+        "objects": [
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "BIGINT",
+            0,
+            null,
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1
+          ],
+          [
+            2
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "physical_ddl_protected": true,
+        "why": "Same begin mode as E15, but the caller catches and completes the scope, so the outer transaction commits the replaced table and chunk 1 deliberately."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E16",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [
+            [
+              "inside_outer_transaction",
+              "OverflowError"
+            ]
+          ],
+          "returned": null,
+          "objects": [
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "BIGINT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": true
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_xinfo(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.foreign_key_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA temp.foreign_key_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nDROP TABLE readings",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nCREATE TABLE readings (\n\tvalue BIGINT\n)\n\n",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_raise"
+          },
+          {
+            "layer": "caller",
+            "event": "outer_scope_continues"
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          }
+        ],
+        "raw_errors": [
+          {
+            "where": "inside_outer_transaction",
+            "type": "OverflowError",
+            "message": "Python int too large to convert to SQLite INTEGER",
+            "cause_type": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "E17-replace-conn-legacy-check-escape",
+      "spec": {
+        "if_exists": "replace",
+        "owner": "connection",
+        "catch": false,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          -3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "success_control",
+        "errors": [],
+        "returned": 4,
+        "objects": [
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "BIGINT",
+            0,
+            null,
+            0
+          ]
+        ],
+        "rows": [
+          [
+            -3
+          ],
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            4
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "physical_ddl_protected": false,
+        "why": "The replacement table has no CHECK constraint, so -3 is accepted; replace never inherits the old table's constraints."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E17",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [],
+          "returned": 4,
+          "objects": [
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "BIGINT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "rows": [
+            [
+              -3
+            ],
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              4
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": false
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_xinfo(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA temp.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nDROP TABLE readings",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nCREATE TABLE readings (\n\tvalue BIGINT\n)\n\n",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (-3)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (4)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_return",
+            "value": 4
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          }
+        ],
+        "raw_errors": []
+      }
+    },
+    {
+      "id": "E18-replace-conn-legacy-success",
+      "spec": {
+        "if_exists": "replace",
+        "owner": "connection",
+        "catch": false,
+        "begin": "legacy",
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "chunksize": 2
+      },
+      "expectation": {
+        "kind": "success_control",
+        "errors": [],
+        "returned": 4,
+        "objects": [
+          [
+            "table",
+            "readings",
+            "readings",
+            "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+          ]
+        ],
+        "columns": [
+          [
+            0,
+            "value",
+            "BIGINT",
+            0,
+            null,
+            0
+          ]
+        ],
+        "rows": [
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            3
+          ],
+          [
+            4
+          ]
+        ],
+        "driver_calls": {
+          "BEGIN": 1,
+          "COMMIT": 1,
+          "ROLLBACK": 0
+        },
+        "physical_ddl_protected": false,
+        "why": "Successful replace: legacy DDL auto-commit followed by one DML commit; the index is intentionally absent."
+      },
+      "atomic_promise": null,
+      "review_reference": "REVIEW.md#E18",
+      "observation": {
+        "versions": {
+          "python": "3.11.2",
+          "sqlite": "3.40.1",
+          "pandas": "2.2.2",
+          "sqlalchemy": "2.0.35"
+        },
+        "actual": {
+          "errors": [],
+          "returned": 4,
+          "objects": [
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (\n\tvalue BIGINT\n)"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "BIGINT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ],
+            [
+              4
+            ]
+          ],
+          "driver_calls": {
+            "BEGIN": 1,
+            "COMMIT": 1,
+            "ROLLBACK": 0
+          },
+          "physical_ddl_protected": false
+        },
+        "before": {
+          "objects": [
+            [
+              "index",
+              "readings_value",
+              "readings",
+              "CREATE INDEX readings_value ON readings(value)"
+            ],
+            [
+              "table",
+              "readings",
+              "readings",
+              "CREATE TABLE readings (value INTEGER NOT NULL CHECK(value>=0), legacy TEXT NOT NULL DEFAULT 'old')"
+            ]
+          ],
+          "columns": [
+            [
+              0,
+              "value",
+              "INTEGER",
+              1,
+              null,
+              0
+            ],
+            [
+              1,
+              "legacy",
+              "TEXT",
+              1,
+              "'old'",
+              0
+            ]
+          ],
+          "rows": [
+            [
+              90,
+              "old"
+            ]
+          ]
+        },
+        "raw_trace": [
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA read_uncommitted",
+            "active_before": false
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "begin",
+            "sa_active": false,
+            "sqlite_active": false
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_enter"
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_info(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.table_xinfo(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA temp.foreign_key_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_list(\"readings\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "PRAGMA main.index_info(\"readings_value\")",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "SELECT sql FROM  (SELECT * FROM sqlite_master UNION ALL   SELECT * FROM sqlite_temp_master) WHERE name = 'readings' AND type in ('table', 'view')",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nDROP TABLE readings",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "\nCREATE TABLE readings (\n\tvalue BIGINT\n)\n\n",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "BEGIN ",
+            "active_before": false
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (1)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (2)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (3)",
+            "active_before": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "INSERT INTO readings (value) VALUES (4)",
+            "active_before": true
+          },
+          {
+            "layer": "caller",
+            "event": "to_sql_return",
+            "value": 4
+          },
+          {
+            "layer": "sqlalchemy",
+            "event": "commit",
+            "sa_active": true,
+            "sqlite_active": true
+          },
+          {
+            "layer": "sqlite",
+            "sql": "COMMIT",
+            "active_before": true
+          }
+        ],
+        "raw_errors": []
+      }
+    }
+  ]
+}
